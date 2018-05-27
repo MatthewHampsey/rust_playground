@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 use std::thread;
 use std::sync::mpsc;
+use std::fs::File;
+use std::error::{Error};
+use std::io::{Read};
 
 #[cfg(test)]
 mod tests {
@@ -15,8 +18,40 @@ mod tests {
     }
 }
 
-fn word_freq(s: &str) -> HashMap<String, u32>{
-    let num_threads = 5;
+pub struct Config {
+    filepath: String,
+    num_threads: usize,
+}
+
+impl Config {
+    pub fn new(mut args: std::env::Args) -> Result<Self, Box<Error>> {
+        args.next();
+        let filepath = match args.next() {
+            Some(path) => path,
+            None   => return Err(From::from("Expected file path")),
+        };
+
+        let num_threads: usize = match args.next() {
+            Some(nthreads) => nthreads.parse()?,
+            //Some(nthreads) => match nthreads.parse() {
+            //                    Ok(n) => n,
+            //                    Err(_) => return Err("Require int input"),
+            //                  },
+            None   => return Err(From::from("Expected number of threads")),
+        };
+
+        Ok(Config {filepath, num_threads })
+    }
+}
+
+pub fn run(config: Config) -> Result<HashMap<String, u32>, Box<Error>> {
+    let mut f = File::open(config.filepath)?;
+    let mut contents = String::new();
+    f.read_to_string(&mut contents)?;
+    Ok(word_freq(&contents, config.num_threads)) 
+}
+
+fn word_freq(s: &str, num_threads:usize) -> HashMap<String, u32>{
     let (tx, rx) = mpsc::channel();
     let words: Vec<&str> = s.split_whitespace().collect();
     let section_length = words.len()/num_threads;
