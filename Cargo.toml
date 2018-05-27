@@ -1,0 +1,6 @@
+[package]
+name = "parallel_word_frequency"
+version = "0.1.0"
+authors = ["matthew"]
+
+[dependencies]
